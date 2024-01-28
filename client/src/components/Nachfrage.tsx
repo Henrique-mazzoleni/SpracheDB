@@ -19,7 +19,7 @@ const Nachfrage: FC<NachfrageProps> = ({ onSubmit }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="spracheformular">
       <label htmlFor="sprache-suche">Sprache Eingeben</label>
       <input
         id="sprache-suche"

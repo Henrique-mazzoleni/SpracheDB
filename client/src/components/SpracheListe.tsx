@@ -15,6 +15,7 @@ const SpracheListe: FC<SpracheListeProps> = ({ sprache }) => {
     name: '',
     mitarbeiter: {},
   });
+  const [fehler, setFehler] = useState(true);
 
   useEffect(() => {
     const spracheEinkunftAbholen = async () => {
@@ -23,36 +24,40 @@ const SpracheListe: FC<SpracheListeProps> = ({ sprache }) => {
           `http://localhost:5005/api/sprachen/${sprache}`
         );
 
-        console.log(data);
+        setFehler(false);
         setSprache(data);
       } catch (error) {
-        console.log(error);
+        setFehler(true);
       }
     };
     spracheEinkunftAbholen();
   }, [sprache]);
 
-  const SpracheElement = (
-    <li>
-      {spracheObj.name}{' '}
-      <ul>
-        {spracheObj.name && (
-          <>
-            {Object.keys(spracheObj.mitarbeiter).map((mitarbeiterLogin) => (
-              <li>
-                {mitarbeiterLogin}: {spracheObj.mitarbeiter[mitarbeiterLogin]}
-              </li>
-            ))}
-          </>
-        )}
-      </ul>
-    </li>
+  const FehlerElement = (
+    <p>Die Sprache "{sprache}" ist nicht in der DB vorhanden.</p>
   );
+
+  const SpracheElement = (
+    <div className="ergebniss">
+      <h3>{spracheObj.name}</h3>
+      <ul>
+        {spracheObj.mitarbeiter &&
+          Object.keys(spracheObj.mitarbeiter).map((mitarbeiterLogin) => (
+            <li key={mitarbeiterLogin}>
+              <span>{mitarbeiterLogin}</span>
+              <span>{spracheObj.mitarbeiter[mitarbeiterLogin]}</span>
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+
+  console.log(fehler, SpracheElement);
 
   return (
     <>
-      <h3>Ergebnis</h3>
-      <ul>{SpracheElement}</ul>
+      <h2>Ergebnis</h2>
+      {fehler ? FehlerElement : SpracheElement}
     </>
   );
 };
