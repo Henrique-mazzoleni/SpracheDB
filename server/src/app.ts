@@ -23,6 +23,36 @@ app.get('/api/daten-abrufen', async (req, res, next) => {
   }
 });
 
+app.get('/api/alle-mitarbeiter', async (req, res, next) => {
+  try {
+    const alleMitarbeiter = await Mitarbeiter.find()
+      .populate('sprachen')
+      .populate({
+        path: 'sprachen',
+        populate: { path: 'id', model: 'Sprache' },
+      });
+
+    if (!alleMitarbeiter) throw new Error('Fehler mit dem Verbingung zur DB.');
+
+    const alleMitarbeiterBereinigt = alleMitarbeiter.map((mitarbeiter) => {
+      const sprachenObj: Record<string, number> = {};
+
+      mitarbeiter.sprachen.forEach((sprache) => {
+        sprachenObj[sprache.get('id').name] = sprache.get('vorkommnisse');
+      });
+
+      return {
+        login: mitarbeiter.login,
+        sprachen: sprachenObj,
+      };
+    });
+
+    res.status(200).json(alleMitarbeiterBereinigt);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/:mitarbeiterLogin', async (req, res, next) => {
   const { mitarbeiterLogin } = req.params;
 
