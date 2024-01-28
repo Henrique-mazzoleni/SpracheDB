@@ -6,6 +6,7 @@ import db from './db';
 
 import alleDatenAbrufen from './daten/datenAbrufen';
 import Mitarbeiter from './models/mitarbeiter.model';
+import Sprache from './models/sprache.model';
 
 config();
 db().catch((error) => console.log('Error connecting to mongo: ', error));
@@ -23,23 +24,26 @@ app.get('/api/daten-abrufen', async (req, res, next) => {
   }
 });
 
-app.get('/api/alle-mitarbeiter', async (req, res, next) => {
+app.get('/api/mitarbeiter/', async (req, res, next) => {
   try {
-    const alleMitarbeiter = await Mitarbeiter.find()
-      .populate('sprachen')
-      .populate({
-        path: 'sprachen',
-        populate: { path: 'id', model: 'Sprache' },
-      });
+    const alleMitarbeiter = await Mitarbeiter.find().populate({
+      path: 'sprachen',
+      populate: { path: 'id', model: 'Sprache' },
+    });
 
-    if (!alleMitarbeiter) throw new Error('Fehler mit dem Verbingung zur DB.');
+    if (!alleMitarbeiter) {
+      res.status(404).json('Keine Mitarbeiter in der DB vorhanden.');
+      return;
+    }
 
     const alleMitarbeiterBereinigt = alleMitarbeiter.map((mitarbeiter) => {
       const sprachenObj: Record<string, number> = {};
 
-      mitarbeiter.sprachen.forEach((sprache) => {
-        sprachenObj[sprache.get('id').name] = sprache.get('vorkommnisse');
-      });
+      mitarbeiter.sprachen
+        .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
+        .forEach((sprache) => {
+          sprachenObj[sprache.get('id').name] = sprache.get('vorkommnisse');
+        });
 
       return {
         login: mitarbeiter.login,
@@ -53,18 +57,16 @@ app.get('/api/alle-mitarbeiter', async (req, res, next) => {
   }
 });
 
-app.get('/api/:mitarbeiterLogin', async (req, res, next) => {
+app.get('/api/mitarbeiter/:mitarbeiterLogin', async (req, res, next) => {
   const { mitarbeiterLogin } = req.params;
 
   try {
     const mitarbeiter = await Mitarbeiter.findOne({
       login: mitarbeiterLogin,
-    })
-      .populate('sprachen')
-      .populate({
-        path: 'sprachen',
-        populate: { path: 'id', model: 'Sprache' },
-      });
+    }).populate({
+      path: 'sprachen',
+      populate: { path: 'id', model: 'Sprache' },
+    });
 
     if (!mitarbeiter) {
       res
@@ -75,9 +77,11 @@ app.get('/api/:mitarbeiterLogin', async (req, res, next) => {
 
     const sprachenObj: Record<string, number> = {};
 
-    mitarbeiter.sprachen.forEach((sprache) => {
-      sprachenObj[sprache.get('id').name] = sprache.get('vorkommnisse');
-    });
+    mitarbeiter.sprachen
+      .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
+      .forEach((sprache) => {
+        sprachenObj[sprache.get('id').name] = sprache.get('vorkommnisse');
+      });
 
     const mitarbeiterBereinigt = {
       login: mitarbeiter.login,
@@ -85,6 +89,78 @@ app.get('/api/:mitarbeiterLogin', async (req, res, next) => {
     };
 
     res.status(200).json(mitarbeiterBereinigt);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/sprachen', async (req, res, next) => {
+  try {
+    const sprachen = await Sprache.find().populate({
+      path: 'mitarbeiter',
+      populate: { path: 'id', model: 'Mitarbeiter' },
+    });
+
+    if (!sprachen) {
+      res.status(404).json('Keine Sprache ist in der DB vorhanden.');
+      return;
+    }
+
+    const spracheBereinigt = sprachen.map((sprache) => {
+      const mitArbeiterObj: Record<string, number> = {};
+
+      sprache.mitarbeiter
+        .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
+        .forEach((mitarbeiter) => {
+          mitArbeiterObj[mitarbeiter.get('id').login] =
+            mitarbeiter.get('vorkommnisse');
+        });
+
+      return {
+        login: sprache.name,
+        mitarbeiter: mitArbeiterObj,
+      };
+    });
+
+    res.status(200).json(spracheBereinigt);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/sprachen/:spracheName', async (req, res, next) => {
+  const { spracheName } = req.params;
+
+  try {
+    const spracheDB = await Sprache.findOne({ name: spracheName }).populate({
+      path: 'mitarbeiter',
+      populate: { path: 'id', model: 'Mitarbeiter' },
+    });
+
+    if (!spracheDB) {
+      res
+        .status(404)
+        .json(
+          'Keine Sprache mit der vorgegebene Name ist in der DB vorhanden.'
+        );
+      return;
+    }
+
+    const mitArbeiterObj: Record<string, number> = {};
+
+    spracheDB.mitarbeiter
+      .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
+      .forEach((mitarbeiter) => {
+        mitArbeiterObj[mitarbeiter.get('id').login] =
+          mitarbeiter.get('vorkommnisse');
+      });
+
+    const spracheBereinigt = {
+      login: spracheDB.name,
+      mitarbeiter: mitArbeiterObj,
+    };
+
+    res.status(200).json(spracheBereinigt);
   } catch (error) {
     next(error);
   }
