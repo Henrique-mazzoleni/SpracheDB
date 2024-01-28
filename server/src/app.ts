@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import express from 'express';
+import cors from 'cors';
 import { Request, Response, NextFunction } from 'express';
 
 import db from './db';
@@ -11,6 +12,15 @@ import Sprache from './models/sprache.model';
 config();
 db().catch((error) => console.log('Error connecting to mongo: ', error));
 const app = express();
+
+const FRONTEND_URL = process.env.ORIGIN || 'http://localhost:5173';
+
+app.use(
+  cors({
+    credentials: true,
+    origin: [FRONTEND_URL],
+  })
+);
 
 app.get('/api/daten-abrufen', async (req, res, next) => {
   try {
@@ -117,7 +127,7 @@ app.get('/api/sprachen', async (req, res, next) => {
         });
 
       return {
-        login: sprache.name,
+        name: sprache.name,
         mitarbeiter: mitArbeiterObj,
       };
     });
@@ -156,7 +166,7 @@ app.get('/api/sprachen/:spracheName', async (req, res, next) => {
       });
 
     const spracheBereinigt = {
-      login: spracheDB.name,
+      name: spracheDB.name,
       mitarbeiter: mitArbeiterObj,
     };
 
