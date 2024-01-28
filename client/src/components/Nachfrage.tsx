@@ -1,31 +1,35 @@
 import { FC, useState } from 'react';
 
 type NachfrageProps = {
+  sucheAuswahl: 'sprache' | 'mitarbeiter';
   onSubmit: (input: string) => void;
 };
 
-const Nachfrage: FC<NachfrageProps> = ({ onSubmit }) => {
-  const [spracheEingabe, setSpracheEingabe] = useState('');
+const Nachfrage: FC<NachfrageProps> = ({ sucheAuswahl, onSubmit }) => {
+  const [eingabe, setEingabe] = useState('');
 
   const handleInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSpracheEingabe(event.target.value);
+    setEingabe(event.target.value);
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    onSubmit(spracheEingabe);
-    setSpracheEingabe('');
+    onSubmit(eingabe);
+    setEingabe('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="spracheformular">
-      <label htmlFor="sprache-suche">Sprache Eingeben</label>
+    <form onSubmit={handleSubmit} className="suche-formular">
+      <label htmlFor="eingabe-suche">
+        {sucheAuswahl[0].toUpperCase()}
+        {sucheAuswahl.slice(1)} Eingeben
+      </label>
       <input
-        id="sprache-suche"
+        id="eingabe-suche"
         type="text"
         onChange={handleInput}
-        value={spracheEingabe}
+        value={eingabe}
       />
     </form>
   );
