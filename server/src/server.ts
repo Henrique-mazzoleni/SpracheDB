@@ -1,26 +1,7 @@
-import { config } from 'dotenv';
-import { connect } from 'mongoose';
+import app from './app';
 
-import alleDatenAbrufen from './daten/datenAbrufen';
+const PORT = process.env.PORT || 5005;
 
-config();
-const MONGO_URI = 'mongodb://127.0.0.1:27017/spracheDB';
-
-const run = async () => {
-  const server = await connect(MONGO_URI);
-
-  console.log(
-    `mongodb connected! Database name: ${server.connections[0].name}`
-  );
-
-  // await alleDatenAbrufen();
-
-  await server.disconnect();
-  console.log('mongodb disconnected');
-};
-
-try {
-  run();
-} catch (error) {
-  console.log(error);
-}
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
