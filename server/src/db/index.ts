@@ -1,6 +1,7 @@
 import { connect } from 'mongoose';
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/spracheDB';
+const MONGO_URI =
+  process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/spracheDB';
 
 const db = async () => {
   const server = await connect(MONGO_URI);
