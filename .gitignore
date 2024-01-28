@@ -18,6 +18,8 @@ Thumbs.db:encryptable
 ehthumbs.db
 *.lnk
 
+# build
+build/
 
 # VS Code
 .vscode/*
