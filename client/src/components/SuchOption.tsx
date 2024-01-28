@@ -17,9 +17,9 @@ const SuchOption: FC<SuchOptionProps> = ({ onAuswahl }) => {
   };
 
   return (
-    <>
+    <div className="auswahl-container">
       <h2>Suche Auswählen</h2>
-      <div>
+      <div className="auswahl-action">
         <div>
           <input
             type="radio"
@@ -43,7 +43,7 @@ const SuchOption: FC<SuchOptionProps> = ({ onAuswahl }) => {
           <label htmlFor="mitarbeiter-auswahl">Mitarbeiter</label>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

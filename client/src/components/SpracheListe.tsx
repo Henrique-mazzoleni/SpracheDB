@@ -52,8 +52,6 @@ const SpracheListe: FC<SpracheListeProps> = ({ sprache }) => {
     </div>
   );
 
-  console.log(fehler, SpracheElement);
-
   return (
     <>
       <h2>Ergebnis</h2>
