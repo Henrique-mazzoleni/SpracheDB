@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 import db from './db';
 
 import alleDatenAbrufen from './daten/datenAbrufen';
+import Mitarbeiter from './models/mitarbeiter.model';
 
 config();
 db().catch((error) => console.log('Error connecting to mongo: ', error));
@@ -12,11 +13,7 @@ const app = express();
 
 app.get('/api/daten-abrufen', async (req, res, next) => {
   try {
-    await alleDatenAbrufen()
-      .then(() => console.log('Daten erfolgreich im DB eingefügt'))
-      .catch((error) =>
-        console.log('Fehler beim abrufen von daten aus der API', error)
-      );
+    await alleDatenAbrufen();
 
     res
       .status(200)
@@ -27,13 +24,43 @@ app.get('/api/daten-abrufen', async (req, res, next) => {
 });
 
 app.get('/api/:mitarbeiterLogin', async (req, res, next) => {
+  const { mitarbeiterLogin } = req.params;
+
   try {
+    const mitarbeiter = await Mitarbeiter.findOne({
+      login: mitarbeiterLogin,
+    })
+      .populate('sprachen')
+      .populate({
+        path: 'sprachen',
+        populate: { path: 'id', model: 'Sprache' },
+      });
+
+    if (!mitarbeiter) {
+      res
+        .status(404)
+        .json('Kein Mitarbeiter in der DB mit dem angegebenen Login.');
+      return;
+    }
+
+    const sprachenObj: Record<string, number> = {};
+
+    mitarbeiter.sprachen.forEach((sprache) => {
+      sprachenObj[sprache.get('id').name] = sprache.get('vorkommnisse');
+    });
+
+    const mitarbeiterBereinigt = {
+      login: mitarbeiter.login,
+      sprachen: sprachenObj,
+    };
+
+    res.status(200).json(mitarbeiterBereinigt);
   } catch (error) {
     next(error);
   }
 });
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
   // this middleware runs whenever requested page is not available
   res.status(404).json({ message: 'This route does not exist' });
 });
