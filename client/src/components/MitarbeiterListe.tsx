@@ -10,13 +10,16 @@ type MitarbeiterElement = {
   sprachen: Record<string, number>;
 };
 
+// der Mitarberter Laden und eine liste seine Sprachen zeigen
 const MitarbeiterListe: FC<MitarbeiterListeProps> = ({ mitarbeiter }) => {
+  // zustand der geladene Daten
   const [mitarbeiterObj, setMitarbeiterObj] = useState<MitarbeiterElement>({
     login: '',
     sprachen: {},
   });
   const [fehler, setFehler] = useState(true);
 
+  // die Daten aus der Server Laden
   useEffect(() => {
     const spracheEinkunftAbholen = async () => {
       try {
@@ -33,12 +36,14 @@ const MitarbeiterListe: FC<MitarbeiterListeProps> = ({ mitarbeiter }) => {
     spracheEinkunftAbholen();
   }, [mitarbeiter]);
 
+  // Fehler verarbeiten
   const FehlerElement = (
     <p>
       Die Mitarbeiter mit Login "{mitarbeiter}" ist nicht in der DB vorhanden.
     </p>
   );
 
+  // die Mitarbeiter und Sprache liste gestalten
   const MitarbeiterElement = (
     <div className="ergebniss">
       <h3>{mitarbeiterObj.login}</h3>

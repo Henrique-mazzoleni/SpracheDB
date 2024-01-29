@@ -10,6 +10,7 @@ type SpracheElement = {
   mitarbeiter: Record<string, number>;
 };
 
+// die gesuchte Sprache Laden und eine liste der Mitarbeiter zeigen
 const SpracheListe: FC<SpracheListeProps> = ({ sprache }) => {
   const [spracheObj, setSprache] = useState<SpracheElement>({
     name: '',
@@ -17,6 +18,7 @@ const SpracheListe: FC<SpracheListeProps> = ({ sprache }) => {
   });
   const [fehler, setFehler] = useState(true);
 
+  // daten aus der Server Laden
   useEffect(() => {
     const spracheEinkunftAbholen = async () => {
       try {
@@ -37,6 +39,7 @@ const SpracheListe: FC<SpracheListeProps> = ({ sprache }) => {
     <p>Die Sprache "{sprache}" ist nicht in der DB vorhanden.</p>
   );
 
+  // Liste gestalten
   const SpracheElement = (
     <div className="ergebniss">
       <h3>{spracheObj.name}</h3>

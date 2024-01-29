@@ -6,7 +6,9 @@ import SpracheListe from './components/SpracheListe';
 import MitarbeiterListe from './components/MitarbeiterListe';
 
 function App() {
+  // die Zustand der Sucheeingabe verarbeiten
   const [eingegebeneAuswahl, setEingegebeneAuswahl] = useState('');
+  // die Art der Suche verarbeiten
   const [sucheAuswahl, setSucheAuswahl] = useState<'sprache' | 'mitarbeiter'>(
     'sprache'
   );
