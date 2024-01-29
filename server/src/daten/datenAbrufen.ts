@@ -15,6 +15,7 @@ type ReposListReturnType = {
   contributors_url: string;
 };
 
+// Alle daten aus der API abrufen und in die DB einfügen
 const alleDatenAbrufen = async () => {
   // Mitarbeiter abrufen und einfügen
   const alleMitarbeiter = (await alleMitarbeiterAbrufenUndEinfügen()) ?? [];
@@ -23,6 +24,7 @@ const alleDatenAbrufen = async () => {
   for (const mitarbeiter of alleMitarbeiter) {
     const repos = (await alleReposAbrufenUndEinfügen(mitarbeiter.login)) ?? [];
 
+    // für jeder repo die Sprachen abrufen und einfügen
     for (const repo of repos) {
       await repoInMitarbeiterEinfügen(mitarbeiter.id, repo.id);
       const sprachen =
@@ -34,7 +36,7 @@ const alleDatenAbrufen = async () => {
     }
   }
 
-  // alle Beitragende von repos ergänzen
+  // alle Beitragende von repos zu Sprachen ergänzen ergänzen
   const alleRepos = (await Repo.find()) ?? [];
   for (const repo of alleRepos) {
     const mitarbeiterDB = await Mitarbeiter.findById(repo.mitarbeiter[0]);
@@ -106,12 +108,13 @@ const alleReposAbrufenUndEinfügen = async (mitarbeiterLogin: string) => {
   }
 };
 
-// alle sprache benutz im gegebenen Repo von gegebenen Mitarbeiter abrufen und im DB einfügen
+// alle Sprachen im gegebenen Repo von gegebenen Mitarbeiter benutz abrufen und im DB einfügen
 const sprachenAbrufenUndEinfügen = async (
   mitarbeiterLogin: string,
   repoName: string
 ) => {
   try {
+    // Sprachen von APi laden
     const { data: sprachen } = await axios.get<Record<string, number>[]>(
       `https://api.github.com/repos/${mitarbeiterLogin}/${repoName}/languages`,
       {
@@ -122,6 +125,7 @@ const sprachenAbrufenUndEinfügen = async (
       }
     );
 
+    // Sieht ob Sprache sich schon in der DB befindet, wenn ja Vorkommnisse ergänzen, wenn nein einfügen
     const sprachenArray: Types.ObjectId[] = [];
     for (const spracheName in sprachen) {
       const sprache = await Sprache.findOne({ name: spracheName });
@@ -147,6 +151,7 @@ const alleBeitragendeAbrufenUndEinfügen = async (
   repoName: string
 ) => {
   try {
+    // Beitragende von API laden
     const { data: beitragende } = await axios.get<MitarbeiterListReturnType[]>(
       `https://api.github.com/repos/${mitarbeiterLogin}/${repoName}/contributors`,
       {
@@ -157,15 +162,18 @@ const alleBeitragendeAbrufenUndEinfügen = async (
       }
     );
 
+    // der repo und besitzer von DB laden
     const mitarbeiterDB = await Mitarbeiter.findOne({
       login: mitarbeiterLogin,
     });
     if (!mitarbeiterDB)
-      throw new Error('Mitarbeiter nicht in der DB vorhanden.');
-
+    throw new Error('Mitarbeiter nicht in der DB vorhanden.');
+  
     const repoDB = await Repo.findOne({ name: repoName });
     if (!repoDB) throw new Error('Repo nicht in de DB vorhanden.');
-
+  
+  
+    // Sieht ob beitragende ein Mitarbeiter bei der Codecentric ist, wenn ja Vorkommnisse ergänzen
     for (const bt of beitragende) {
       const mitarbeiter = await Mitarbeiter.findOne({ login: bt.login });
       if (!mitarbeiter || repoDB.mitarbeiter.includes(mitarbeiter._id))
@@ -183,6 +191,7 @@ const alleBeitragendeAbrufenUndEinfügen = async (
   }
 };
 
+// eine neue Mitarbeiter zu der DB einfügen
 const neueMitarbeiterEinfügen = async (mitarbeiterLogin: string) => {
   try {
     const mitarbeiterDB = await Mitarbeiter.findOne({
@@ -204,6 +213,7 @@ const neueMitarbeiterEinfügen = async (mitarbeiterLogin: string) => {
   }
 };
 
+// eine neue Repo zu der DB einfügen
 const neueRepoEinfügen = async (repoName: string) => {
   try {
     const neueRepo = new Repo({
@@ -219,6 +229,7 @@ const neueRepoEinfügen = async (repoName: string) => {
   }
 };
 
+// eine neue Sprache zu der DB einfügen
 const neueSpracheEinfügen = async (spracheName: string) => {
   try {
     const spracheDB = await Sprache.findOne({ name: spracheName });
@@ -237,11 +248,13 @@ const neueSpracheEinfügen = async (spracheName: string) => {
   }
 };
 
+// verbindet eine sprache zu eine Mitarbeiter und ergäntz die Vorkommnisse auf beides
 const spracheInMitarbeiterEinfügen = async (
   mitarbeiterId: Types.ObjectId,
   spracheId: Types.ObjectId
 ) => {
   try {
+    // sprache und Mitarbeiter aus der DB laden
     const spracheDB = await Sprache.findById(spracheId);
     if (!spracheDB) throw new Error('Sprache nicht in der DB vorhanden.');
 
@@ -249,6 +262,7 @@ const spracheInMitarbeiterEinfügen = async (
     if (!mitarbeiterDB)
       throw new Error('Mitarbeiter nicht in der DB vorhanden.');
 
+    // wenn die Sprache schon im Mitarbeiter vorhanden ist, ergänzen, ansonsten einfügen
     const schonImMitarbeiter =
       mitarbeiterDB.sprachen.filter((sprache) =>
         sprache.get('id').equals(spracheId)
@@ -266,11 +280,11 @@ const spracheInMitarbeiterEinfügen = async (
       await mitarbeiterDB.save();
     }
 
+    // wenn der Mitarbeiter schon im Sprache vorhanden ist, ergänzen, ansonsten einfügen
     const schonImSprache =
       spracheDB.mitarbeiter.filter((mitarbeiter) =>
         mitarbeiter.get('id').equals(mitarbeiterId)
       ).length !== 0;
-
     if (schonImSprache) {
       await Sprache.findOneAndUpdate(
         { 'mitarbeiter.id': mitarbeiterId, _id: spracheId },
@@ -290,11 +304,13 @@ const spracheInMitarbeiterEinfügen = async (
   }
 };
 
+// verbindet eine Repo zu eine Mitarbeiter
 const repoInMitarbeiterEinfügen = async (
   mitarbeiterId: Types.ObjectId,
   repoId: Types.ObjectId
 ) => {
   try {
+    // Repo und Mitarbeiter aus der DB Laden
     const repoDB = await Repo.findById(repoId);
     if (!repoDB) throw new Error(`Repo ${repoId} nicht in der DB vorhanden.`);
 
@@ -302,11 +318,13 @@ const repoInMitarbeiterEinfügen = async (
     if (!mitarbeiterDB)
       throw new Error('Mitarbeiter nicht in der DB vorhanden.');
 
+    // Repo zu Mitarbeiter verbinden
     if (mitarbeiterDB.repos.includes(repoDB._id))
       throw new Error('Repo schon im Mitarbeiter vorhanden');
     mitarbeiterDB.repos.push(repoDB._id);
     await mitarbeiterDB.save();
 
+    // Mitarbeiter zu Repo verbinden
     if (repoDB.mitarbeiter.includes(mitarbeiterDB._id))
       throw new Error('Mitarbeiter schon im Repo vorhanden');
     repoDB.mitarbeiter.push(mitarbeiterDB._id);
@@ -316,22 +334,26 @@ const repoInMitarbeiterEinfügen = async (
   }
 };
 
+// verbinidet eine Repo zu eine Sprache
 const repoInSpracheEinfügen = async (
   spracheId: Types.ObjectId,
   repoId: Types.ObjectId
 ) => {
   try {
+    // Repo und Sprache aus der API laden
     const repoDB = await Repo.findById(repoId);
     if (!repoDB) throw new Error('Repo nicht in der DB vorhanden.');
 
     const spracheDB = await Sprache.findById(spracheId);
     if (!spracheDB) throw new Error('Sprache nicht in der DB vorhanden.');
 
+    // Repo zu Sprache verbinden
     if (spracheDB.repos.includes(repoDB._id))
       throw new Error('Repo schon im Sprache vorhanden');
     spracheDB.repos.push(repoDB._id);
     await spracheDB.save();
 
+    // Sprache zu Repo verbinden
     if (repoDB.sprachen.includes(spracheDB._id))
       throw new Error('Sprache schon im Repo vorhanden');
     repoDB.mitarbeiter.push(spracheDB._id);

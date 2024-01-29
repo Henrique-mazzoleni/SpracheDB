@@ -9,12 +9,13 @@ import alleDatenAbrufen from './daten/datenAbrufen';
 import Mitarbeiter from './models/mitarbeiter.model';
 import Sprache from './models/sprache.model';
 
-config();
-db().catch((error) => console.log('Error connecting to mongo: ', error));
-const app = express();
+config(); // Umgebung varieble laden
+db().catch((error) => console.log('Error connecting to mongo: ', error)); // db starten
+const app = express(); // server starten
 
 const FRONTEND_URL = process.env.ORIGIN || 'http://localhost:5173';
 
+// Lädt die Frontend wegen Cors
 app.use(
   cors({
     credentials: true,
@@ -22,6 +23,7 @@ app.use(
   })
 );
 
+// diese Endpunkt lädt alle daten aus der API und lädt in de DB
 app.get('/api/daten-abrufen', async (req, res, next) => {
   try {
     await alleDatenAbrufen();
@@ -34,8 +36,10 @@ app.get('/api/daten-abrufen', async (req, res, next) => {
   }
 });
 
+// hollt alle mitarbeiter aus de DB und gitb die daten im json format zurück
 app.get('/api/mitarbeiter/', async (req, res, next) => {
   try {
+    // alle mitarbeiter aus der DB laden
     const alleMitarbeiter = await Mitarbeiter.find().populate({
       path: 'sprachen',
       populate: { path: 'id', model: 'Sprache' },
@@ -46,9 +50,11 @@ app.get('/api/mitarbeiter/', async (req, res, next) => {
       return;
     }
 
+    // daten reinigen für eine schönere präsentation
     const alleMitarbeiterBereinigt = alleMitarbeiter.map((mitarbeiter) => {
       const sprachenObj: Record<string, number> = {};
 
+      // die sprache array auf die Vorkommnisse ordnen
       mitarbeiter.sprachen
         .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
         .forEach((sprache) => {
@@ -67,10 +73,12 @@ app.get('/api/mitarbeiter/', async (req, res, next) => {
   }
 });
 
+// Eine bestimmte mitarbeiter laden
 app.get('/api/mitarbeiter/:mitarbeiterLogin', async (req, res, next) => {
   const { mitarbeiterLogin } = req.params;
 
   try {
+    // mitarbeiter aus der DB laden
     const mitarbeiter = await Mitarbeiter.findOne({
       login: mitarbeiterLogin,
     }).populate({
@@ -87,6 +95,7 @@ app.get('/api/mitarbeiter/:mitarbeiterLogin', async (req, res, next) => {
 
     const sprachenObj: Record<string, number> = {};
 
+    // die sprache array auf die Vorkommnisse ordnen
     mitarbeiter.sprachen
       .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
       .forEach((sprache) => {
@@ -104,8 +113,10 @@ app.get('/api/mitarbeiter/:mitarbeiterLogin', async (req, res, next) => {
   }
 });
 
+// alle sprachen aus der DB holen und im json format zurück geben
 app.get('/api/sprachen', async (req, res, next) => {
   try {
+    // Sprachen aus der DB laden
     const sprachen = await Sprache.find().populate({
       path: 'mitarbeiter',
       populate: { path: 'id', model: 'Mitarbeiter' },
@@ -116,9 +127,11 @@ app.get('/api/sprachen', async (req, res, next) => {
       return;
     }
 
+    // Daten bereinigen
     const spracheBereinigt = sprachen.map((sprache) => {
       const mitArbeiterObj: Record<string, number> = {};
 
+      // mitarbeiter auf die Vorkommnisse ordnen
       sprache.mitarbeiter
         .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
         .forEach((mitarbeiter) => {
@@ -138,6 +151,7 @@ app.get('/api/sprachen', async (req, res, next) => {
   }
 });
 
+// eine bestimte Sprache aus der DB laden
 app.get('/api/sprachen/:spracheName', async (req, res, next) => {
   const { spracheName } = req.params;
 
@@ -158,6 +172,7 @@ app.get('/api/sprachen/:spracheName', async (req, res, next) => {
 
     const mitArbeiterObj: Record<string, number> = {};
 
+    // mitarbeiter auf die Vorkommnisse ordnen
     spracheDB.mitarbeiter
       .sort((a, b) => b.get('vorkommnisse') - a.get('vorkommnisse'))
       .forEach((mitarbeiter) => {
@@ -177,17 +192,16 @@ app.get('/api/sprachen/:spracheName', async (req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  // this middleware runs whenever requested page is not available
+  // fallback Endpunkt für fehlhafte eingaben beim URL
   res.status(404).json({ message: 'This route does not exist' });
 });
 
 app.use(
   (error: Error, req: Request, res: Response, next: NextFunction): void => {
-    // whenever you call next(err), this middleware will handle the error
-    // always logs the error
+    // bei jedem Aufruf von next(error) wird diese Middleware den Fehler behandeln
     console.error('ERROR', req.method, req.path, error);
 
-    // only render if the error ocurred before sending the response
+    // nur wiedergeben, wenn der Fehler vor dem Senden der Antwort aufgetreten ist
     if (!res.headersSent) {
       res.status(500).json({
         message:
